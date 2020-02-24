@@ -1,0 +1,114 @@
+---
+title: "Exploring 2018 Forest and Land Cover"
+output: html_document
+---
+
+This document serves as a coding template for creating non-random subsets of the City of Toronto Forest and Land Cover 2018 data set.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE}
+library(here)        # for creating relative file-paths
+library(dtplyr)      # for manipulating large datasets
+library(dplyr)       # for manipulating data 
+library(sf)          # for reading shapefiles
+```
+
+```{r}
+
+# remember to change the working directory!
+setwd(".")
+
+```
+
+```{r}
+
+# Read SHAPEFILE from the current working directory (".")
+# reference website: https://open.toronto.ca/dataset/forest-and-land-cover/
+lc_2018 <- read_sf(dsn = ".", layer = "SHAPEFILE")
+
+```
+
+# Exploratory Data Analysis 
+
+```{r}
+# number of land cover classes
+unique(lc_2018[["gridcode"]])
+```
+ 
+```{r}
+# get number of polygons per land-cover class
+lc_2018[["gridcode"]] %>%
+  table() %>%
+  sort()
+```
+ 
+```{r}
+# purpose of this function: create a new data frame that contains info on a single land-cover class
+# this is done to reduce any computatinal burdens from uploading the original 2018 dataset
+# essentially, I'm doing non-random sampling of the original dataset
+
+# @ param lc is a data.frame or tibble that contains the following columns: 
+# OBJECTID, gridcode, geometry
+# @ param cat is the land-cover category class, where your options are:
+# (1) tree,
+# (2) grass,
+# (3) bare, 
+# (4) water,
+# (5) building, 
+# (6) road, 
+# (7) other paved surfaces, 
+# (8) shrub
+
+split_lc_cats <- function(lc, cat) {
+  
+  if (cat %in% 1:8) {
+    
+  # use data.table as backend to speed up computing power
+  lz_lc <- dtplyr::lazy_dt(lc)
+  
+  # get only a specific land cover class
+  lc_new_cat <- dplyr::filter(lz_lc, gridcode == as.numeric(cat))
+  
+  # return new df
+  return(as.data.frame(lc_new_cat))
+  
+  } else{
+    
+    print("Input parameter (cat) is outside the range domain of numeric values (i.e., 1 to 8)")
+  } 
+  
+}
+```
+ 
+```{r}
+
+# get non-random subsets of land-cover classes 
+lc_trees <- split_lc_cats(lc = lc_2018, cat = 1)
+lc_grass <- split_lc_cats(lc = lc_2018, cat = 2)
+lc_bare_earth <- split_lc_cats(lc = lc_2018, cat = 3)
+lc_water <- split_lc_cats(lc = lc_2018, cat = 4)
+lc_buildings <- split_lc_cats(lc = lc_2018, cat = 5)
+lc_roads <- split_lc_cats(lc = lc_2018, cat = 6)
+lc_other_paved <- split_lc_cats(lc = lc_2018, cat = 7)
+lc_shrub <- split_lc_cats(lc = lc_2018, cat = 8)
+
+```
+
+```{r}
+
+# to reduce computation burden, save as RDS to re-upload into any R environment
+# overall, this should reduce storage space from 2GB to a *total* of ~600 MB
+
+ saveRDS(lc_trees, filename = "lc_trees.RDS")
+ saveRDS(lc_grass, filename = "lc_grass.RDS")
+ saveRDS(lc_bare_earth, filename = "lc_bare_earth.RDS")
+ saveRDS(lc_water, filename = "lc_water.RDS")
+ saveRDS(lc_buildings, filename = "lc_buildings.RDS")
+ saveRDS(lc_roads, filename = "lc_roads.RDS")
+ saveRDS(lc_other_paved, filename = "lc_other_paved_surf.RDS")
+ saveRDS(lc_shrubs, filename = "lc_shrubs.RDS")
+
+```
